@@ -1,15 +1,42 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import CandidateForm from './components/CandidateForm';
 import ProfileResult from './components/ProfileResult';
 import { analyzeCandidate } from './services/geminiService';
 import { CandidateData, AnalysisResult } from './types';
 
+// Kibővített ablak típus definíció a biztonságos híváshoz
+// Fix: Use AIStudio type directly to avoid redeclaration conflicts with existing definitions in the environment.
+declare global {
+  interface Window {
+    aistudio: AIStudio;
+  }
+}
+
 const App: React.FC = () => {
+  const [hasKey, setHasKey] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkKey = async () => {
+      try {
+        const selected = await window.aistudio.hasSelectedApiKey();
+        setHasKey(selected);
+      } catch (err) {
+        setHasKey(false);
+      }
+    };
+    checkKey();
+  }, []);
+
+  const handleOpenKeySelector = async () => {
+    await window.aistudio.openSelectKey();
+    // A guideline alapján a választás után azonnal továbblépünk, feltételezve a sikert
+    setHasKey(true);
+  };
 
   const handleAnalyze = async (data: CandidateData) => {
     setIsLoading(true);
@@ -21,7 +48,12 @@ const App: React.FC = () => {
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
       }, 300);
     } catch (err: any) {
-      setError(err.message || 'Hiba történt az elemzés során.');
+      if (err.message?.includes("Requested entity was not found")) {
+        setHasKey(false);
+        setError("Az API kulcs nem érvényes vagy nem található. Kérlek válaszd ki újra!");
+      } else {
+        setError(err.message || 'Hiba történt az elemzés során.');
+      }
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -33,6 +65,41 @@ const App: React.FC = () => {
     setError(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Belépő képernyő, ha nincs API kulcs
+  if (hasKey === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="glass-card rounded-[3rem] p-10 md:p-16 max-w-xl w-full text-center shadow-2xl animate-fade">
+          <div className="flex justify-center items-baseline font-black tracking-tighter text-4xl mb-8">
+            <span className="text-[#323d5a]">LEADERS</span>
+            <span className="ml-1 bg-[#3b82f6] text-white px-3 py-1 rounded-xl shadow-lg shadow-blue-100">HUB</span>
+          </div>
+          <h2 className="text-2xl font-black text-[#323d5a] mb-4 leading-tight uppercase tracking-tight">Üdvözlünk a Stratégiai Központban</h2>
+          <p className="text-gray-500 mb-10 font-medium">Az elemzés megkezdéséhez kérjük, válaszd ki az API kulcsodat. Győződj meg róla, hogy a választott kulcs egy <span className="text-blue-600 font-bold">fizetős projekthez</span> kapcsolódik.</p>
+          
+          <button 
+            onClick={handleOpenKeySelector}
+            className="w-full hub-gradient-bg text-white font-black py-6 rounded-3xl text-xl shadow-2xl shadow-blue-200 hover:scale-[1.02] active:scale-[0.98] transition-all mb-6"
+          >
+            API KULCS KIVÁLASZTÁSA
+          </button>
+          
+          <a 
+            href="https://ai.google.dev/gemini-api/docs/billing" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-blue-500 transition-colors"
+          >
+            Számlázási dokumentáció megnyitása →
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Betöltési állapot, amíg ellenőrizzük a kulcsot
+  if (hasKey === null) return null;
 
   return (
     <div className="min-h-screen">

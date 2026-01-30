@@ -3,6 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { CandidateData, AnalysisResult } from "../types";
 
 export const analyzeCandidate = async (data: CandidateData): Promise<AnalysisResult> => {
+  // Mindig új példányt hozunk létre a legfrissebb API kulcs biztosításához
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const prompt = `
@@ -23,11 +24,11 @@ export const analyzeCandidate = async (data: CandidateData): Promise<AnalysisRes
     2. DISC: Becsült D, I, S, C értékek (0-100).
     3. GOLDEN COPYWRITING (4 db): 
        - 2 db LEHETŐSÉG/ÜZLET: Fókusz a szabadságon, közösségen és mentoráláson.
-       - 2 db MEGOLDÁS/TERMÉK: Fókusz a konkrét előnyökön (életminőség, energia, prevenció).
+       - 2 db MEGOLDÁS/TERMÉK: Fókusz a konkrét előnyökön.
        - Minden üzenethez írj egy "psychology" magyarázatot.
-    4. KIFOGÁSKEZELÉS: 3 tipikus kifogás és a hozzá tartozó frappáns, profi válasz.
+    4. KIFOGÁSKEZELÉS: 3 tipikus kifogás és válasz.
 
-    FONTOS: Az üzenetek legyenek természetesek, emberiek, de rendkívül profik. Használj modern magyar üzleti tegezést. Kerüld az MLM-es kliséket.
+    FONTOS: Használj modern magyar üzleti tegezést. Kerüld az MLM-es kliséket.
   `;
 
   try {
@@ -85,8 +86,9 @@ export const analyzeCandidate = async (data: CandidateData): Promise<AnalysisRes
 
     const jsonStr = response.text || "{}";
     return JSON.parse(jsonStr.trim());
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI Analysis failed:", error);
-    throw new Error("Hiba történt az elemzés során.");
+    // Ha a hiba entitás hiányra utal, az API kulcs választó újraindítása javasolt az App.tsx-ben
+    throw error;
   }
 };
