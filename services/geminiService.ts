@@ -3,40 +3,39 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { CandidateData, AnalysisResult } from "../types";
 
 export const analyzeCandidate = async (data: CandidateData): Promise<AnalysisResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const prompt = `
-    Te egy profi üzleti mentor és hálózatépítési szakértő vagy, aki a PM-International (FitLine) partnereit segíti. 
-    A feladatod, hogy elemezz egy potenciális jelöltet az alábbi adatok alapján, és készíts egy stratégiát a megkereséséhez.
+    Te egy világszínvonalú network marketing stratéga és hipnotikus copywriting szakértő vagy a Leaders Hub közösségben.
+    A feladatod, hogy elemezz egy jelöltet és készíts professzionális megközelítési stratégiát.
     
     Jelölt adatai:
-    - Becsült kor: ${data.age}
-    - Gyerekek: ${data.hasChildren ? 'Van gyereke' : 'Nincs gyereke'}
-    - Családi állapot: ${data.maritalStatus}
-    - Foglalkozás: ${data.occupation}
-    - Lakhely: ${data.residence}
-    - Jellemzők/Trait-ek: ${data.traits.join(', ')}
-    - Fő motiváció: ${data.motivation}
-    - Ráfordítható idő: ${data.timeAvailability}
-    - Értékesítési tapasztalat: ${data.salesExperience ? 'Van' : 'Nincs'}
-    - DISC típus: ${data.discType || 'Nincs meghatározva'}
-    - Egyéb jegyzetek: ${data.notes}
+    - Kor: ${data.age}, Gyerekek: ${data.hasChildren ? 'Igen' : 'Nem'}, Állapot: ${data.maritalStatus}
+    - Lakhely: ${data.residence}, Szakma: ${data.occupation}
+    - Jellemzők: ${data.traits.join(', ')}
+    - Motiváció: ${data.motivation}, Idő: ${data.timeAvailability}
+    - Értékesítési múlt: ${data.salesExperience ? 'Igen' : 'Nem'}
+    - DISC: ${data.discType || 'Elemezd ki a profil alapján'}
+    - Megjegyzés: ${data.notes}
 
-    Kérlek, válaszolj magyar nyelven, szakmai, de támogató stílusban. 
-    A válaszod tartalmazzon:
-    1. Rövid összefoglalót (profileSummary): Építs a DISC típusra és az élethelyzetre.
-    2. Motivációk (motivations): Sorolj fel 3-4 fő hajtóerőt, ami a PM-ben vonzó lehet neki.
-    3. Megközelítési tippek (approachTips): Adj konkrét tanácsokat, hogyan szólítsd meg (pl. termékkel vagy üzlettel kezdj).
-    4. Javasolt nyitómondat (openingSentence): Egy pontos, természetes hangvételű első mondat a kapcsolatfelvételhez.
+    FELADATOK:
+    1. PROFIL ÖSSZEGZÉS: 2-3 mondatos szakértői elemzés.
+    2. DISC: Becsült D, I, S, C értékek (0-100).
+    3. GOLDEN COPYWRITING (4 db): 
+       - 2 db LEHETŐSÉG/ÜZLET: Fókusz a szabadságon, közösségen és mentoráláson.
+       - 2 db MEGOLDÁS/TERMÉK: Fókusz a konkrét előnyökön (életminőség, energia, prevenció).
+       - Minden üzenethez írj egy "psychology" magyarázatot.
+    4. KIFOGÁSKEZELÉS: 3 tipikus kifogás és a hozzá tartozó frappáns, profi válasz.
 
-    Fókuszálj a PM-International egyedi értékeire: FitLine termékek (NTC koncepció), prémium minőség, családi vállalkozás háttér, német precizitás, egyszerű üzleti modell.
+    FONTOS: Az üzenetek legyenek természetesek, emberiek, de rendkívül profik. Használj modern magyar üzleti tegezést. Kerüld az MLM-es kliséket.
   `;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3-pro-preview",
       contents: prompt,
       config: {
+        thinkingConfig: { thinkingBudget: 32768 },
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -44,16 +43,50 @@ export const analyzeCandidate = async (data: CandidateData): Promise<AnalysisRes
             profileSummary: { type: Type.STRING },
             motivations: { type: Type.ARRAY, items: { type: Type.STRING } },
             approachTips: { type: Type.ARRAY, items: { type: Type.STRING } },
-            openingSentence: { type: Type.STRING }
+            discAnalysis: {
+              type: Type.OBJECT,
+              properties: {
+                d: { type: Type.NUMBER },
+                i: { type: Type.NUMBER },
+                s: { type: Type.NUMBER },
+                c: { type: Type.NUMBER }
+              },
+              required: ["d", "i", "s", "c"]
+            },
+            openingMessages: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  type: { type: Type.STRING },
+                  title: { type: Type.STRING },
+                  text: { type: Type.STRING },
+                  psychology: { type: Type.STRING }
+                },
+                required: ["type", "title", "text", "psychology"]
+              }
+            },
+            objections: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  objection: { type: Type.STRING },
+                  rebuttal: { type: Type.STRING }
+                },
+                required: ["objection", "rebuttal"]
+              }
+            }
           },
-          required: ["profileSummary", "motivations", "approachTips", "openingSentence"]
+          required: ["profileSummary", "motivations", "approachTips", "openingMessages", "objections", "discAnalysis"]
         }
       }
     });
 
-    return JSON.parse(response.text);
+    const jsonStr = response.text || "{}";
+    return JSON.parse(jsonStr.trim());
   } catch (error) {
     console.error("AI Analysis failed:", error);
-    throw new Error("Nem sikerült az elemzés. Kérlek próbáld újra később.");
+    throw new Error("Hiba történt az elemzés során.");
   }
 };

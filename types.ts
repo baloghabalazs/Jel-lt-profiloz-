@@ -26,13 +26,6 @@ export enum TimeFrame {
   T10_PLUS = 'Heti 10+ óra'
 }
 
-export enum DiscType {
-  D = 'Domináns (D) - Eredményorientált, határozott',
-  I = 'Befolyásoló (I) - Közvetlen, lelkes',
-  S = 'Stabil (S) - Együttműködő, türelmes',
-  C = 'Szabálykövető (C) - Pontos, elemző'
-}
-
 export interface CandidateData {
   age: AgeRange;
   hasChildren: boolean;
@@ -47,9 +40,28 @@ export interface CandidateData {
   notes: string;
 }
 
+export interface OpeningMessage {
+  type: 'product' | 'business';
+  text: string;
+  title: string;
+  psychology: string; // Miért működik ez a szöveg?
+}
+
+export interface ObjectionHandling {
+  objection: string;
+  rebuttal: string;
+}
+
 export interface AnalysisResult {
   profileSummary: string;
   motivations: string[];
   approachTips: string[];
-  openingSentence: string;
+  openingMessages: OpeningMessage[];
+  objections: ObjectionHandling[];
+  discAnalysis: {
+    d: number; // 0-100
+    i: number;
+    s: number;
+    c: number;
+  };
 }
